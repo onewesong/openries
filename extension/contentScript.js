@@ -600,9 +600,9 @@
       #ries-wordbook-popover .wb-icon-btn svg path { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       #ries-wordbook-popover .wb-icon-btn.bookmarked svg path { fill: currentColor; stroke: none; }
       /* remember icon */
-      #ries-wordbook-popover .wb-remember-btn {
-        right: 40px; /* placed left to bookmark */
-      }
+      /* bookmark按钮靠记住按钮左侧，记住按钮最右 */
+      #ries-wordbook-popover .wb-bookmark-btn { right: 40px; }
+      #ries-wordbook-popover .wb-remember-btn { right: 8px; }
       #ries-wordbook-popover .wb-remember-btn.active {
         color: #f59e0b; /* amber */
         background: rgba(245, 158, 11, 0.15);
@@ -623,7 +623,7 @@
           <path d=\"m9 12 2 2 4-4\"/>
         </svg>
       </button>
-      <button class="wb-icon-btn" id="ries-wb-pop-toggle" title="添加到生词本" aria-label="添加到生词本">
+      <button class="wb-icon-btn wb-bookmark-btn" id="ries-wb-pop-toggle" title="添加到单词本" aria-label="添加到单词本">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M6 4c0-1.105.895-2 2-2h8c1.105 0 2 .895 2 2v16l-6-3.5L6 20V4z"/>
         </svg>
@@ -648,7 +648,7 @@
         if (exists) {
           isBookmarked = true;
           toggleBtn.classList.add('bookmarked');
-          toggleBtn.title = '移出生词本';
+          toggleBtn.title = '移出单词本';
         }
       }
     });
@@ -674,7 +674,7 @@
                 if (removeResponse?.ok) {
                   isBookmarked = false;
                   toggleBtn.classList.remove('bookmarked');
-                  toggleBtn.title = '添加到生词本';
+                  toggleBtn.title = '添加到单词本';
                   if (inlineSpan && inlineSpan.classList) {
                     inlineSpan.classList.remove('ries-bookmarked');
                   }
@@ -691,7 +691,7 @@
           if (addResponse?.ok) {
             isBookmarked = true;
             toggleBtn.classList.add('bookmarked');
-            toggleBtn.title = '移出生词本';
+            toggleBtn.title = '移出单词本';
             if (inlineSpan && inlineSpan.classList) {
               inlineSpan.classList.add('ries-bookmarked');
             }
@@ -757,7 +757,7 @@
           ${context ? `<div class="wordbook-context">${escapeHtml(context)}</div>` : ''}
         </div>
         <div class="modal-footer">
-          <button id="ries-bookmark-btn" class="bookmark-btn">+ 添加到生词本</button>
+          <button id="ries-bookmark-btn" class="bookmark-btn">+ 添加到单词本</button>
           <button id="ries-cancel-btn" class="cancel-btn">关闭</button>
         </div>
       </div>
@@ -927,7 +927,7 @@
         const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
         if (exists) {
           isBookmarked = true;
-          bookmarkBtn.textContent = '− 移出生词本';
+          bookmarkBtn.textContent = '− 移出单词本';
           bookmarkBtn.classList.add('bookmarked');
         }
       }
@@ -945,7 +945,7 @@
               }, (removeResponse) => {
                 if (removeResponse?.ok) {
                   isBookmarked = false;
-                  bookmarkBtn.textContent = '+ 添加到生词本';
+                  bookmarkBtn.textContent = '+ 添加到单词本';
                   bookmarkBtn.classList.remove('bookmarked');
                   if (inlineSpan && inlineSpan.classList) {
                     inlineSpan.classList.remove('ries-bookmarked');
@@ -966,7 +966,7 @@
         }, (addResponse) => {
           if (addResponse?.ok) {
             isBookmarked = true;
-            bookmarkBtn.textContent = '− 移出生词本';
+            bookmarkBtn.textContent = '− 移出单词本';
             bookmarkBtn.classList.add('bookmarked');
             if (inlineSpan && inlineSpan.classList) {
               inlineSpan.classList.add('ries-bookmarked');

@@ -111,6 +111,27 @@ async function loadWordbook() {
   }
 }
 
+function relativeTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  if (!Number.isFinite(diffMs)) return '';
+  const sec = Math.max(0, Math.floor(diffMs / 1000));
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  const month = Math.floor(day / 30);
+  const year = Math.floor(day / 365);
+  if (sec < 10) return '刚刚';
+  if (sec < 60) return `${sec} 秒前`;
+  if (min < 60) return `${min} 分钟前`;
+  if (hr < 24) return `${hr} 小时前`;
+  if (day < 30) return `${day} 天前`;
+  if (month < 12) return `${month} 个月前`;
+  return `${year} 年前`;
+}
+
 function renderWordbook(wordbook) {
   const listEl = document.getElementById('wordbook-list');
   if (!listEl) return;
@@ -118,7 +139,7 @@ function renderWordbook(wordbook) {
   listEl.innerHTML = '';
 
   if (wordbook.length === 0) {
-    listEl.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 12px; padding: 16px 0;">生词本为空</p>';
+    listEl.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 12px; padding: 16px 0;">单词本为空</p>';
     return;
   }
 
@@ -126,8 +147,7 @@ function renderWordbook(wordbook) {
     const itemEl = document.createElement('div');
     itemEl.className = 'wordbook-item';
 
-    const date = new Date(entry.addedAt);
-    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    const dateStr = relativeTime(entry.addedAt);
 
     itemEl.innerHTML = `
       <div class="wordbook-item-en">${entry.english}</div>
@@ -172,7 +192,7 @@ async function removeWordbookItem(id) {
     });
     if (response?.ok) {
       renderWordbook(response.data);
-      showStatus('已从生词本中删除', 1500);
+      showStatus('已从单词本中删除', 1500);
     }
   } catch (error) {
     console.error('Failed to remove wordbook item', error);
@@ -202,7 +222,7 @@ async function exportWordbook() {
       a.download = `ries-wordbook-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showStatus('生词本已导出', 2000);
+      showStatus('单词本已导出', 2000);
     }
   } catch (error) {
     console.error('Failed to export wordbook', error);
@@ -211,7 +231,7 @@ async function exportWordbook() {
 }
 
 async function clearWordbook() {
-  if (!confirm('确定要清空生词本吗？此操作不可撤销。')) {
+  if (!confirm('确定要清空单词本吗？此操作不可撤销。')) {
     return;
   }
 
@@ -219,7 +239,7 @@ async function clearWordbook() {
     const response = await chrome.runtime.sendMessage({ type: 'RIES_CLEAR_WORDBOOK' });
     if (response?.ok) {
       renderWordbook([]);
-      showStatus('生词本已清空', 2000);
+      showStatus('单词本已清空', 2000);
     }
   } catch (error) {
     console.error('Failed to clear wordbook', error);
@@ -230,6 +250,7 @@ async function clearWordbook() {
 document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('export-wordbook');
   const clearBtn = document.getElementById('clear-wordbook');
+  const openPageBtn = document.getElementById('open-wordbook-page');
 
   if (exportBtn) {
     exportBtn.addEventListener('click', exportWordbook);
@@ -237,6 +258,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (clearBtn) {
     clearBtn.addEventListener('click', clearWordbook);
+  }
+
+  if (openPageBtn) {
+    openPageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = chrome.runtime.getURL('wordbook.html');
+      if (chrome.tabs?.create) {
+        chrome.tabs.create({ url });
+      } else {
+        window.open(url, '_blank');
+      }
+    });
   }
 });
 

@@ -1,0 +1,45 @@
+:root {
+  --bg: #0b1220;
+  --card: #0f172a;
+  --border: #1f2a44;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --primary: #6366f1;
+  --danger: #ef4444;
+}
+
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; }
+.page { max-width: 960px; margin: 0 auto; padding: 24px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.page-header h1 { font-size: 20px; margin: 0; }
+.actions { display: flex; gap: 8px; }
+.btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; }
+.btn.danger { background: var(--danger); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.toolbar { display: flex; align-items: center; gap: 12px; margin: 12px 0 16px; }
+#search { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px 12px; }
+.filter { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.filter select { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; }
+.count { color: var(--muted); font-size: 12px; }
+
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.wb-table { width: 100%; border-collapse: collapse; }
+.wb-table thead { background: #0b1020; }
+.wb-table th, .wb-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.wb-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .02em; }
+.wb-table td .en { font-weight: 700; }
+.wb-table td .cn { color: #cbd5f5; }
+.wb-table td .ctx { color: var(--muted); font-size: 12px; word-break: break-word; }
+.wb-table .ops { display: flex; gap: 8px; }
+.op-btn { background: transparent; color: #94a3b8; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+.op-btn:hover { background: rgba(148,163,184,0.12); color: #e2e8f0; }
+.badge { border-radius: 999px; font-size: 11px; padding: 3px 8px; font-weight: 700; letter-spacing: .02em; display: inline-block; }
+.badge.unremembered { background: rgba(99,102,241,0.15); color: #c7d2fe; border: 1px solid rgba(99,102,241,0.35); }
+.badge.remembered { background: rgba(16,185,129,0.15); color: #a7f3d0; border: 1px solid rgba(16,185,129,0.35); }
+
+/* 用样式弱化已记住的词条 */
+.wb-table tr.remembered { opacity: 0.62; }
+.wb-table tr.remembered .en { font-weight: 600; }
+
+.empty { text-align: center; color: var(--muted); padding: 24px 0; font-size: 13px; }

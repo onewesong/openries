@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ries 单词本</title>
+    <link rel="stylesheet" href="wordbook.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <h1>单词本</h1>
+        <div class="actions">
+          <button id="export-btn" class="btn">导出 CSV</button>
+          <button id="clear-btn" class="btn danger">清空</button>
+        </div>
+      </header>
+
+      <section class="toolbar">
+        <input id="search" type="search" placeholder="搜索英文/中文/上下文" />
+        <label class="filter">
+          <span>状态</span>
+          <select id="status-filter">
+            <option value="all">全部</option>
+            <option value="remembered">已记住</option>
+            <option value="unremembered">未记住</option>
+          </select>
+        </label>
+        <span id="count" class="count">0 项</span>
+      </section>
+
+      <section class="table-wrap">
+        <table id="wb-table" class="wb-table">
+          <thead>
+            <tr>
+              <th style="width: 24%">英文</th>
+              <th style="width: 24%">中文</th>
+              <th>上下文</th>
+              <th style="width: 18%">添加时间</th>
+              <th style="width: 12%">操作</th>
+            </tr>
+          </thead>
+          <tbody id="wb-tbody"></tbody>
+        </table>
+        <div id="empty" class="empty" style="display:none;">单词本为空</div>
+      </section>
+    </main>
+    <script type="module" src="wordbook.js"></script>
+  </body>
+  </html>

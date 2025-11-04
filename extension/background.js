@@ -8,7 +8,9 @@ import {
   exportWordbook,
   getRememberedTerms,
   rememberTerm,
-  forgetRememberedTerm
+  forgetRememberedTerm,
+  clearRememberedTerms,
+  exportRememberedTerms
 } from './settings.js';
 
 const CONTEXT_MENU_ID = 'ries-translate-selection';
@@ -169,6 +171,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (error) {
         console.error('Forget term failed', error);
         sendResponse({ ok: false, error: error.message || 'Failed to forget term' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'RIES_CLEAR_REMEMBERED') {
+    (async () => {
+      try {
+        const list = await clearRememberedTerms();
+        sendResponse({ ok: true, data: list });
+      } catch (error) {
+        console.error('Clear remembered terms failed', error);
+        sendResponse({ ok: false, error: error.message || 'Failed to clear remembered terms' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'RIES_EXPORT_REMEMBERED') {
+    (async () => {
+      try {
+        const list = await exportRememberedTerms();
+        sendResponse({ ok: true, data: list });
+      } catch (error) {
+        console.error('Export remembered terms failed', error);
+        sendResponse({ ok: false, error: error.message || 'Failed to export remembered terms' });
       }
     })();
     return true;

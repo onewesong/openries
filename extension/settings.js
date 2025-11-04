@@ -103,3 +103,17 @@ export async function forgetRememberedTerm(item) {
   await chrome.storage.sync.set({ [REMEMBERED_KEY]: next });
   return next;
 }
+
+export async function clearRememberedTerms() {
+  await chrome.storage.sync.set({ [REMEMBERED_KEY]: [] });
+  return [];
+}
+
+export async function exportRememberedTerms() {
+  const list = await getRememberedTerms();
+  return list.map(entry => ({
+    英文: entry.english,
+    中文: entry.chinese,
+    添加时间: entry.addedAt
+  }));
+}
