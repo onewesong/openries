@@ -203,15 +203,13 @@
 
       .${INLINE_CLASS} {
         display: inline;
-        background: rgba(76, 110, 245, 0.15);
         color: inherit;
-        border-radius: 6px;
-        padding: 0 4px;
         transition: background 0.2s ease, color 0.2s ease;
       }
 
       .${INLINE_CLASS}.${INLINE_LOADING_CLASS} {
         animation: ries-inline-blink 1s ease-in-out infinite;
+        background: rgba(76, 110, 245, 0.18);
         color: inherit;
       }
 
