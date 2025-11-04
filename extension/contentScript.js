@@ -585,7 +585,6 @@
         border: 1px solid transparent;
         background: transparent;
         color: #94a3b8;
-        font-size: 16px;
         line-height: 1;
       }
       #ries-wordbook-popover .wb-icon-btn:hover {
@@ -597,13 +596,20 @@
         background: rgba(16,185,129,0.15);
         border-color: rgba(16,185,129,0.25);
       }
+      #ries-wordbook-popover .wb-icon-btn svg { width: 18px; height: 18px; }
+      #ries-wordbook-popover .wb-icon-btn svg path { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      #ries-wordbook-popover .wb-icon-btn.bookmarked svg path { fill: currentColor; stroke: none; }
     `;
     document.head.appendChild(style);
 
     const pop = document.createElement('div');
     pop.id = 'ries-wordbook-popover';
     pop.innerHTML = `
-      <button class="wb-icon-btn" id="ries-wb-pop-toggle" title="添加到生词本">🔖</button>
+      <button class="wb-icon-btn" id="ries-wb-pop-toggle" title="添加到生词本" aria-label="添加到生词本">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 4c0-1.105.895-2 2-2h8c1.105 0 2 .895 2 2v16l-6-3.5L6 20V4z"/>
+        </svg>
+      </button>
       <div class="wb-en">${escapeHtml(english)}</div>
       ${chinese ? `<div class="wb-cn">${escapeHtml(chinese)}</div>` : ''}
       ${context ? `<div class="wb-ctx">${escapeHtml(context)}</div>` : ''}
