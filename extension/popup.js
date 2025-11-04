@@ -100,6 +100,146 @@ hotkeyShowTranslationsInput.addEventListener('change', () => {
   persistSettings({ hotkeyShowTranslations: value }, '显示切换快捷键已保存');
 });
 
+async function loadWordbook() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' });
+    if (response?.ok) {
+      renderWordbook(response.data);
+    }
+  } catch (error) {
+    console.error('Failed to load wordbook', error);
+  }
+}
+
+function renderWordbook(wordbook) {
+  const listEl = document.getElementById('wordbook-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '';
+
+  if (wordbook.length === 0) {
+    listEl.innerHTML = '<p style="text-align: center; color: #64748b; font-size: 12px; padding: 16px 0;">生词本为空</p>';
+    return;
+  }
+
+  wordbook.forEach(entry => {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'wordbook-item';
+
+    const date = new Date(entry.addedAt);
+    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+    itemEl.innerHTML = `
+      <div class="wordbook-item-en">${entry.english}</div>
+      <div class="wordbook-item-cn">${entry.chinese}</div>
+      ${entry.context ? `<div class="wordbook-item-context">${entry.context}</div>` : ''}
+      <div class="wordbook-item-date">${dateStr}</div>
+    `;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '×';
+    deleteBtn.style.cssText = `
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 4px;
+      width: 20px;
+      height: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    deleteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await removeWordbookItem(entry.id);
+    });
+
+    itemEl.appendChild(deleteBtn);
+    listEl.appendChild(itemEl);
+  });
+}
+
+async function removeWordbookItem(id) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'RIES_REMOVE_FROM_WORDBOOK',
+      id
+    });
+    if (response?.ok) {
+      renderWordbook(response.data);
+      showStatus('已从生词本中删除', 1500);
+    }
+  } catch (error) {
+    console.error('Failed to remove wordbook item', error);
+    showStatus('删除失败', 0);
+  }
+}
+
+async function exportWordbook() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'RIES_EXPORT_WORDBOOK' });
+    if (response?.ok) {
+      const data = response.data;
+      const csv = [
+        ['英文', '中文', '上下文', '添加时间'],
+        ...data.map(item => [
+          item['英文'],
+          item['中文'],
+          item['上下文'],
+          item['添加时间']
+        ])
+      ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ries-wordbook-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('生词本已导出', 2000);
+    }
+  } catch (error) {
+    console.error('Failed to export wordbook', error);
+    showStatus('导出失败', 0);
+  }
+}
+
+async function clearWordbook() {
+  if (!confirm('确定要清空生词本吗？此操作不可撤销。')) {
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'RIES_CLEAR_WORDBOOK' });
+    if (response?.ok) {
+      renderWordbook([]);
+      showStatus('生词本已清空', 2000);
+    }
+  } catch (error) {
+    console.error('Failed to clear wordbook', error);
+    showStatus('清空失败', 0);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const exportBtn = document.getElementById('export-wordbook');
+  const clearBtn = document.getElementById('clear-wordbook');
+
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportWordbook);
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearWordbook);
+  }
+});
+
 openOptionsLink.addEventListener('click', (event) => {
   event.preventDefault();
   chrome.runtime.openOptionsPage();
@@ -108,3 +248,5 @@ openOptionsLink.addEventListener('click', (event) => {
 hydrate().catch(() => {
   showStatus('加载设置失败，请检查控制台。', 0);
 });
+
+loadWordbook();

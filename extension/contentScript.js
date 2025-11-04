@@ -219,6 +219,26 @@
         text-decoration-style: dashed;
         text-decoration-color: rgba(148, 163, 184, 0.55);
         font-weight: 600;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .${INLINE_CLASS} .ries-annotated:hover {
+        text-decoration-color: rgba(148, 163, 184, 0.85);
+      }
+
+      .${INLINE_CLASS} .ries-annotated.ries-bookmarked {
+        text-decoration-color: #10b981;
+        text-decoration-thickness: 2px;
+      }
+
+      .${INLINE_CLASS} .ries-annotated.ries-bookmarked::after {
+        content: '🔖';
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 10px;
+        opacity: 0.8;
       }
 
       @keyframes ries-inline-blink {
@@ -465,6 +485,298 @@
         }
       });
     }
+  }
+
+  function handleWordbookClick(event) {
+    const target = event.target;
+
+    if (target.classList.contains('ries-annotated')) {
+      const inlineSpan = target.closest(`.${INLINE_CLASS}`);
+
+      // 从点击文本中解析 英文(中文)
+      const raw = (target.textContent || '').trim();
+      let english = raw;
+      let chineseBracket = '';
+      const m = raw.match(/^(.*?)\s*\((.*?)\)$/);
+      if (m) {
+        english = (m[1] || '').trim();
+        chineseBracket = (m[2] || '').trim();
+      }
+
+      // 从内联翻译数据中查找匹配项
+      const inlineData = inlineSpan?.translationData;
+      let chinese = '';
+      if (inlineData?.replacements && Array.isArray(inlineData.replacements)) {
+        const found = inlineData.replacements.find(r => (r?.english || '').trim() === english);
+        if (found?.chinese) {
+          chinese = String(found.chinese).trim();
+        }
+      }
+      if (!chinese) {
+        chinese = chineseBracket; // 兜底使用括号内文本
+      }
+
+      const context = inlineSpan ? getContextFromInline(inlineSpan) : '';
+
+      if (english) {
+        showWordbookModal(english, chinese, context, inlineSpan || null);
+      }
+    }
+  }
+
+  function showWordbookModal(english, chinese, context, inlineSpan) {
+    const modal = document.createElement('div');
+    modal.id = 'ries-wordbook-modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>词汇详情</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="wordbook-word-en">${escapeHtml(english)}</div>
+          <div class="wordbook-word-cn">${escapeHtml(chinese)}</div>
+          ${context ? `<div class="wordbook-context">${escapeHtml(context)}</div>` : ''}
+        </div>
+        <div class="modal-footer">
+          <button id="ries-bookmark-btn" class="bookmark-btn">+ 添加到生词本</button>
+          <button id="ries-cancel-btn" class="cancel-btn">关闭</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #ries-wordbook-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #ries-wordbook-modal .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+      }
+
+      #ries-wordbook-modal .modal-content {
+        position: relative;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      #ries-wordbook-modal .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #334155;
+      }
+
+      #ries-wordbook-modal .modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #f8fafc;
+      }
+
+      #ries-wordbook-modal .modal-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+      }
+
+      #ries-wordbook-modal .modal-close:hover {
+        background: #334155;
+        color: #f8fafc;
+      }
+
+      #ries-wordbook-modal .modal-body {
+        padding: 20px;
+      }
+
+      #ries-wordbook-modal .wordbook-word-en {
+        font-size: 18px;
+        font-weight: 600;
+        color: #f8fafc;
+        margin-bottom: 8px;
+      }
+
+      #ries-wordbook-modal .wordbook-word-cn {
+        font-size: 15px;
+        color: #cbd5f5;
+        margin-bottom: 12px;
+      }
+
+      #ries-wordbook-modal .wordbook-context {
+        font-size: 13px;
+        color: #94a3b8;
+        font-style: italic;
+        line-height: 1.5;
+        padding: 12px;
+        background: #0f172a;
+        border-radius: 8px;
+      }
+
+      #ries-wordbook-modal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 16px 20px;
+        border-top: 1px solid #334155;
+      }
+
+      #ries-wordbook-modal .bookmark-btn {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      #ries-wordbook-modal .bookmark-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      }
+
+      #ries-wordbook-modal .bookmark-btn.bookmarked {
+        background: linear-gradient(135deg, #10b981, #059669);
+      }
+
+      #ries-wordbook-modal .bookmark-btn.bookmarked:hover {
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      }
+
+      #ries-wordbook-modal .cancel-btn {
+        background: #334155;
+        color: #f8fafc;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      #ries-wordbook-modal .cancel-btn:hover {
+        background: #475569;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const closeModal = () => {
+      modal.remove();
+      style.remove();
+    };
+
+    modal.querySelector('.modal-close').addEventListener('click', closeModal);
+    modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+    modal.querySelector('#ries-cancel-btn').addEventListener('click', closeModal);
+
+    const bookmarkBtn = modal.querySelector('#ries-bookmark-btn');
+    let isBookmarked = false;
+
+    chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
+      if (response?.ok) {
+        const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
+        if (exists) {
+          isBookmarked = true;
+          bookmarkBtn.textContent = '− 移出生词本';
+          bookmarkBtn.classList.add('bookmarked');
+        }
+      }
+    });
+
+    bookmarkBtn.addEventListener('click', () => {
+      if (isBookmarked) {
+        chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
+          if (response?.ok) {
+            const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
+            if (exists) {
+              chrome.runtime.sendMessage({
+                type: 'RIES_REMOVE_FROM_WORDBOOK',
+                id: exists.id
+              }, (removeResponse) => {
+                if (removeResponse?.ok) {
+                  isBookmarked = false;
+                  bookmarkBtn.textContent = '+ 添加到生词本';
+                  bookmarkBtn.classList.remove('bookmarked');
+                  if (inlineSpan && inlineSpan.classList) {
+                    inlineSpan.classList.remove('ries-bookmarked');
+                  }
+                }
+              });
+            }
+          }
+        });
+      } else {
+        chrome.runtime.sendMessage({
+          type: 'RIES_ADD_TO_WORDBOOK',
+          data: {
+            english,
+            chinese,
+            context
+          }
+        }, (addResponse) => {
+          if (addResponse?.ok) {
+            isBookmarked = true;
+            bookmarkBtn.textContent = '− 移出生词本';
+            bookmarkBtn.classList.add('bookmarked');
+            if (inlineSpan && inlineSpan.classList) {
+              inlineSpan.classList.add('ries-bookmarked');
+            }
+          }
+        });
+      }
+    });
+  }
+
+  function getContextFromInline(inlineSpan) {
+    const originalText = inlineSpan.dataset?.riesOriginal || '';
+    if (!originalText) {
+      return '';
+    }
+
+    const maxLength = 100;
+    if (originalText.length <= maxLength) {
+      return originalText;
+    }
+
+    const trimmed = originalText.trim();
+    if (trimmed.length <= maxLength) {
+      return trimmed;
+    }
+
+    return trimmed.substring(0, maxLength) + '...';
   }
 
   function escapeHtml(value) {
@@ -996,6 +1308,10 @@
     const showInline = displayTranslations || !inline.isAuto;
 
     inline.translationData = data;
+    // 将翻译数据挂到 DOM 节点，便于点击检索
+    if (inline.placeholder) {
+      inline.placeholder.translationData = data;
+    }
 
     if (!showInline) {
       inline.placeholder.textContent = inline.originalText;
@@ -1371,6 +1687,7 @@
     handleGlobalHotkey(event);
   }, true);
   document.addEventListener('keyup', handleTriggerKeyUp, true);
+  document.addEventListener('click', handleWordbookClick, true);
   window.addEventListener('scroll', () => refreshFloatingPosition(), true);
   window.addEventListener('resize', () => refreshFloatingPosition());
   window.addEventListener('blur', () => setTriggerActive(false));
