@@ -69,7 +69,8 @@ form.addEventListener('submit', async (event) => {
       temperature: Number.parseFloat(temperatureInput.value) || 0.2,
       termTargetCount: latestSettings.termTargetCount,
       termDifficulty: latestSettings.termDifficulty,
-      showTranslations: latestSettings.showTranslations
+      showTranslations: latestSettings.showTranslations,
+      triggerKey: latestSettings.triggerKey
     });
 
     // Saved message

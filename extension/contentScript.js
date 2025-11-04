@@ -17,7 +17,8 @@
     apiKey: '',
     apiBaseUrl: 'https://api.openai.com',
     apiPath: '/v1/chat/completions',
-    temperature: 0.2
+    temperature: 0.2,
+    triggerKey: 'ctrl'
   };
 
   let floatingIcon = null;
@@ -36,10 +37,10 @@
   let displayTranslations = true;
   let cacheKeyPrefix = computeCacheKeyPrefix(currentSettings);
 
-  let ctrlActive = false;
+  let triggerActive = false;
   let currentInline = null;
-  let pendingCtrlEvent = null;
-  let ctrlHoverRAF = null;
+  let pendingTriggerEvent = null;
+  let triggerHoverRAF = null;
 
   function ensureStyles() {
     if (document.getElementById('ries-translation-style')) {
@@ -330,6 +331,44 @@
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+  }
+
+  function isTriggerKeyPressed(settings) {
+    const triggerKey = settings?.triggerKey || 'ctrl';
+    if (triggerKey === 'none') {
+      return false;
+    }
+    switch (triggerKey) {
+      case 'ctrl':
+        return event.ctrlKey;
+      case 'alt':
+        return event.altKey;
+      case 'shift':
+        return event.shiftKey;
+      case 'meta':
+        return event.metaKey;
+      default:
+        return event.ctrlKey;
+    }
+  }
+
+  function shouldProcessTriggerKey(event) {
+    const triggerKey = currentSettings?.triggerKey || 'ctrl';
+    if (triggerKey === 'none') {
+      return false;
+    }
+    switch (triggerKey) {
+      case 'ctrl':
+        return event.key === 'Control';
+      case 'alt':
+        return event.key === 'Alt';
+      case 'shift':
+        return event.key === 'Shift';
+      case 'meta':
+        return event.key === 'Meta';
+      default:
+        return event.key === 'Control';
+    }
   }
 
   function escapeHtml(value) {
@@ -641,7 +680,7 @@
     if (selectionCheckTimeout) {
       clearTimeout(selectionCheckTimeout);
     }
-    if (ctrlActive) {
+    if (triggerActive) {
       hideFloatingUI();
       return;
     }
@@ -945,20 +984,20 @@
       });
   }
 
-  function processCtrlHover() {
-    ctrlHoverRAF = null;
-    if (!ctrlActive) {
+  function processTriggerHover() {
+    triggerHoverRAF = null;
+    if (!triggerActive) {
       return;
     }
 
     if (!currentSettings.apiKey) {
       clearCurrentInline({ revert: true });
-      pendingCtrlEvent = null;
+      pendingTriggerEvent = null;
       return;
     }
 
-    const event = pendingCtrlEvent;
-    pendingCtrlEvent = null;
+    const event = pendingTriggerEvent;
+    pendingTriggerEvent = null;
 
     if (!event) {
       return;
@@ -990,17 +1029,17 @@
     translateInlineTarget(currentInline);
   }
 
-  function handleCtrlMouseMove(event) {
-    if (event.ctrlKey) {
-      if (!ctrlActive) {
-        setCtrlActive(true);
+  function handleTriggerMouseMove(event) {
+    if (isTriggerKeyPressed(currentSettings)) {
+      if (!triggerActive) {
+        setTriggerActive(true);
       }
-    } else if (ctrlActive) {
-      setCtrlActive(false);
+    } else if (triggerActive) {
+      setTriggerActive(false);
       return;
     }
 
-    if (!ctrlActive) {
+    if (!triggerActive) {
       return;
     }
 
@@ -1009,23 +1048,23 @@
       return;
     }
 
-    pendingCtrlEvent = event;
+    pendingTriggerEvent = event;
 
-    if (!ctrlHoverRAF) {
-      ctrlHoverRAF = requestAnimationFrame(processCtrlHover);
+    if (!triggerHoverRAF) {
+      triggerHoverRAF = requestAnimationFrame(processTriggerHover);
     }
   }
 
-  function setCtrlActive(state) {
-    if (ctrlActive === state) {
+  function setTriggerActive(state) {
+    if (triggerActive === state) {
       return;
     }
-    ctrlActive = state;
-    if (!ctrlActive) {
-      pendingCtrlEvent = null;
-      if (ctrlHoverRAF) {
-        cancelAnimationFrame(ctrlHoverRAF);
-        ctrlHoverRAF = null;
+    triggerActive = state;
+    if (!triggerActive) {
+      pendingTriggerEvent = null;
+      if (triggerHoverRAF) {
+        cancelAnimationFrame(triggerHoverRAF);
+        triggerHoverRAF = null;
       }
       clearCurrentInline({ revert: !displayTranslations });
     } else {
@@ -1033,15 +1072,15 @@
     }
   }
 
-  function handleCtrlKeyDown(event) {
-    if (event.key === 'Control') {
-      setCtrlActive(true);
+  function handleTriggerKeyDown(event) {
+    if (shouldProcessTriggerKey(event)) {
+      setTriggerActive(true);
     }
   }
 
-  function handleCtrlKeyUp(event) {
-    if (event.key === 'Control' || !event.ctrlKey) {
-      setCtrlActive(false);
+  function handleTriggerKeyUp(event) {
+    if (shouldProcessTriggerKey(event) || !isTriggerKeyPressed(currentSettings)) {
+      setTriggerActive(false);
     }
   }
 
@@ -1230,15 +1269,15 @@
     scheduleSelectionCheck(40);
   });
   document.addEventListener('mousedown', handleDocumentMouseDown, true);
-  document.addEventListener('mousemove', handleCtrlMouseMove, true);
-  document.addEventListener('keydown', handleCtrlKeyDown, true);
-  document.addEventListener('keyup', handleCtrlKeyUp, true);
+  document.addEventListener('mousemove', handleTriggerMouseMove, true);
+  document.addEventListener('keydown', handleTriggerKeyDown, true);
+  document.addEventListener('keyup', handleTriggerKeyUp, true);
   window.addEventListener('scroll', () => refreshFloatingPosition(), true);
   window.addEventListener('resize', () => refreshFloatingPosition());
-  window.addEventListener('blur', () => setCtrlActive(false));
+  window.addEventListener('blur', () => setTriggerActive(false));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      setCtrlActive(false);
+      setTriggerActive(false);
     }
   });
 

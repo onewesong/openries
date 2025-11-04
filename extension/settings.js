@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
   temperature: 0.2,
   termTargetCount: 3,
   termDifficulty: 'intermediate',
-  showTranslations: true
+  showTranslations: true,
+  triggerKey: 'ctrl'
 };
 
 export async function getSettings() {

@@ -3,6 +3,7 @@ import { getSettings, saveSettings } from './settings.js';
 const displayToggle = document.getElementById('display-toggle');
 const termCountInput = document.getElementById('popup-term-count');
 const termDifficultySelect = document.getElementById('popup-term-difficulty');
+const triggerKeySelect = document.getElementById('popup-trigger-key');
 const statusEl = document.getElementById('status');
 const openOptionsLink = document.getElementById('open-options');
 const modelMeta = document.getElementById('model-meta');
@@ -41,6 +42,7 @@ async function hydrate() {
     termDifficultySelect.value = allowedDifficulties.has(settings.termDifficulty)
       ? settings.termDifficulty
       : 'intermediate';
+    triggerKeySelect.value = settings.triggerKey || 'ctrl';
     modelMeta.textContent = settings.model ? `模型 ${settings.model}` : '';
     showStatus('设置已同步', 1200);
   } catch (error) {
@@ -84,6 +86,11 @@ termDifficultySelect.addEventListener('change', () => {
     : 'intermediate';
   termDifficultySelect.value = value;
   persistSettings({ termDifficulty: value }, '术语难度已更新');
+});
+
+triggerKeySelect.addEventListener('change', () => {
+  const value = triggerKeySelect.value;
+  persistSettings({ triggerKey: value }, '触发键已更新');
 });
 
 openOptionsLink.addEventListener('click', (event) => {
