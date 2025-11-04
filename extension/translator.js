@@ -1,4 +1,4 @@
-import { wrapWithAnnotations } from './utils.js';
+import { wrapWithAnnotations, redactRemembered } from './utils.js';
 
 class TranslationError extends Error {
   constructor(message, details) {
@@ -97,18 +97,19 @@ async function callChatCompletion(text, settings) {
   return { translation, replacements };
 }
 
-export async function translateWithReplacements(text, settings) {
+export async function translateWithReplacements(text, settings, remembered = []) {
   if (!settings.apiKey) {
     throw new TranslationError('API key is missing. Please set it in the extension options.');
   }
 
   const { translation, replacements } = await callChatCompletion(text, settings);
-  const translationHtml = wrapWithAnnotations(translation, replacements);
+  const redacted = redactRemembered(translation, replacements, remembered);
+  const translationHtml = wrapWithAnnotations(redacted.translation, redacted.replacements);
 
   return {
-    translation,
+    translation: redacted.translation,
     translationHtml,
-    replacements
+    replacements: redacted.replacements
   };
 }
 

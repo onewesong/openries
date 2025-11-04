@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'ries-translator-settings';
 const WORDBOOK_KEY = 'ries-wordbook';
+const REMEMBERED_KEY = 'ries-remembered';
 
 const DEFAULT_SETTINGS = {
   apiBaseUrl: 'https://api.openai.com',
@@ -72,4 +73,33 @@ export async function exportWordbook() {
     上下文: entry.context || '',
     添加时间: entry.addedAt
   }));
+}
+
+// Remembered terms
+export async function getRememberedTerms() {
+  const stored = await chrome.storage.sync.get(REMEMBERED_KEY);
+  const list = stored?.[REMEMBERED_KEY] || [];
+  if (!Array.isArray(list)) return [];
+  return list;
+}
+
+export async function rememberTerm(item) {
+  const list = await getRememberedTerms();
+  const exists = list.find(e => (e.english || '').trim() === (item.english || '').trim() && (e.chinese || '').trim() === (item.chinese || '').trim());
+  if (exists) return list;
+  const newItem = {
+    english: (item.english || '').trim(),
+    chinese: (item.chinese || '').trim(),
+    addedAt: new Date().toISOString()
+  };
+  const next = [...list, newItem];
+  await chrome.storage.sync.set({ [REMEMBERED_KEY]: next });
+  return next;
+}
+
+export async function forgetRememberedTerm(item) {
+  const list = await getRememberedTerms();
+  const next = list.filter(e => !((e.english || '').trim() === (item.english || '').trim() && (e.chinese || '').trim() === (item.chinese || '').trim()));
+  await chrome.storage.sync.set({ [REMEMBERED_KEY]: next });
+  return next;
 }

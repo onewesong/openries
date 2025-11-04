@@ -599,12 +599,30 @@
       #ries-wordbook-popover .wb-icon-btn svg { width: 18px; height: 18px; }
       #ries-wordbook-popover .wb-icon-btn svg path { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       #ries-wordbook-popover .wb-icon-btn.bookmarked svg path { fill: currentColor; stroke: none; }
+      /* remember icon */
+      #ries-wordbook-popover .wb-remember-btn {
+        right: 40px; /* placed left to bookmark */
+      }
+      #ries-wordbook-popover .wb-remember-btn.active {
+        color: #f59e0b; /* amber */
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.25);
+      }
+      #ries-wordbook-popover .wb-remember-btn svg { width: 18px; height: 18px; }
+      #ries-wordbook-popover .wb-remember-btn svg path { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      #ries-wordbook-popover .wb-remember-btn.active svg path { fill: currentColor; stroke: none; }
     `;
     document.head.appendChild(style);
 
     const pop = document.createElement('div');
     pop.id = 'ries-wordbook-popover';
     pop.innerHTML = `
+      <button class="wb-icon-btn wb-remember-btn" id="ries-wb-pop-remember" title="标记为已记住" aria-label="标记为已记住">
+        <svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">
+          <path d=\"M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z\"/>
+          <path d=\"m9 12 2 2 4-4\"/>
+        </svg>
+      </button>
       <button class="wb-icon-btn" id="ries-wb-pop-toggle" title="添加到生词本" aria-label="添加到生词本">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M6 4c0-1.105.895-2 2-2h8c1.105 0 2 .895 2 2v16l-6-3.5L6 20V4z"/>
@@ -621,7 +639,9 @@
 
     // 初始化书签状态
     const toggleBtn = pop.querySelector('#ries-wb-pop-toggle');
+    const rememberBtn = pop.querySelector('#ries-wb-pop-remember');
     let isBookmarked = false;
+    let isRemembered = false;
     chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
       if (response?.ok) {
         const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
@@ -629,6 +649,17 @@
           isBookmarked = true;
           toggleBtn.classList.add('bookmarked');
           toggleBtn.title = '移出生词本';
+        }
+      }
+    });
+
+    chrome.runtime.sendMessage({ type: 'RIES_GET_REMEMBERED' }, (response) => {
+      if (response?.ok) {
+        const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
+        if (exists) {
+          isRemembered = true;
+          rememberBtn.classList.add('active');
+          rememberBtn.title = '取消已记住';
         }
       }
     });
@@ -663,6 +694,43 @@
             toggleBtn.title = '移出生词本';
             if (inlineSpan && inlineSpan.classList) {
               inlineSpan.classList.add('ries-bookmarked');
+            }
+          }
+        });
+      }
+    });
+
+    rememberBtn.addEventListener('click', () => {
+      if (isRemembered) {
+        chrome.runtime.sendMessage({ type: 'RIES_FORGET_TERM', item: { english, chinese } }, (res) => {
+          if (res?.ok) {
+            isRemembered = false;
+            rememberBtn.classList.remove('active');
+            rememberBtn.title = '标记为已记住';
+          }
+        });
+      } else {
+        chrome.runtime.sendMessage({ type: 'RIES_REMEMBER_TERM', item: { english, chinese } }, (res) => {
+          if (res?.ok) {
+            isRemembered = true;
+            rememberBtn.classList.add('active');
+            rememberBtn.title = '取消已记住';
+            // 就地更新：将当前目标或 inlineSpan 中该术语改为纯中文
+            if (targetEl && targetEl.classList && targetEl.classList.contains('ries-annotated')) {
+              targetEl.replaceWith(document.createTextNode(chinese || english));
+            } else if (inlineSpan) {
+              try {
+                const nodes = inlineSpan.querySelectorAll('.ries-annotated');
+                nodes.forEach(n => {
+                  const raw = (n.textContent || '').trim();
+                  const m = raw.match(/^(.*?)\s*\((.*?)\)$/);
+                  const en = m ? (m[1] || '').trim() : raw;
+                  const cn = m ? (m[2] || '').trim() : '';
+                  if (en === english && (!chinese || cn === chinese)) {
+                    n.replaceWith(document.createTextNode(chinese || cn || en));
+                  }
+                });
+              } catch {}
             }
           }
         });

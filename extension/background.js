@@ -5,7 +5,10 @@ import {
   getWordbook,
   removeFromWordbook,
   clearWordbook,
-  exportWordbook
+  exportWordbook,
+  getRememberedTerms,
+  rememberTerm,
+  forgetRememberedTerm
 } from './settings.js';
 
 const CONTEXT_MENU_ID = 'ries-translate-selection';
@@ -27,7 +30,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   try {
     const settings = await getSettings();
-    const response = await translateWithReplacements(info.selectionText, settings);
+    const remembered = await getRememberedTerms();
+    const response = await translateWithReplacements(info.selectionText, settings, remembered);
 
     chrome.tabs.sendMessage(tab.id, {
       type: 'RIES_TRANSLATION_RESULT',
@@ -54,7 +58,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         const settings = await getSettings();
-        const response = await translateWithReplacements(message.text, settings);
+        const remembered = await getRememberedTerms();
+        const response = await translateWithReplacements(message.text, settings, remembered);
         sendResponse({ ok: true, data: response });
       } catch (error) {
         console.error('Translation via popup failed', error);
@@ -124,6 +129,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (error) {
         console.error('Export wordbook failed', error);
         sendResponse({ ok: false, error: error.message || 'Failed to export wordbook' });
+      }
+    })();
+    return true;
+  }
+
+  // Remembered terms APIs
+  if (message?.type === 'RIES_GET_REMEMBERED') {
+    (async () => {
+      try {
+        const list = await getRememberedTerms();
+        sendResponse({ ok: true, data: list });
+      } catch (error) {
+        console.error('Get remembered terms failed', error);
+        sendResponse({ ok: false, error: error.message || 'Failed to get remembered terms' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'RIES_REMEMBER_TERM') {
+    (async () => {
+      try {
+        const list = await rememberTerm(message.item || {});
+        sendResponse({ ok: true, data: list });
+      } catch (error) {
+        console.error('Remember term failed', error);
+        sendResponse({ ok: false, error: error.message || 'Failed to remember term' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'RIES_FORGET_TERM') {
+    (async () => {
+      try {
+        const list = await forgetRememberedTerm(message.item || {});
+        sendResponse({ ok: true, data: list });
+      } catch (error) {
+        console.error('Forget term failed', error);
+        sendResponse({ ok: false, error: error.message || 'Failed to forget term' });
       }
     })();
     return true;
