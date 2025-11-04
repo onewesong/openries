@@ -70,7 +70,8 @@ form.addEventListener('submit', async (event) => {
       termTargetCount: latestSettings.termTargetCount,
       termDifficulty: latestSettings.termDifficulty,
       showTranslations: latestSettings.showTranslations,
-      triggerKey: latestSettings.triggerKey
+      triggerKey: latestSettings.triggerKey,
+      hotkeyShowTranslations: latestSettings.hotkeyShowTranslations
     });
 
     // Saved message

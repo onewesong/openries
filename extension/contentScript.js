@@ -18,7 +18,8 @@
     apiBaseUrl: 'https://api.openai.com',
     apiPath: '/v1/chat/completions',
     temperature: 0.2,
-    triggerKey: 'ctrl'
+    triggerKey: 'ctrl',
+    hotkeyShowTranslations: ''
   };
 
   let floatingIcon = null;
@@ -366,6 +367,103 @@
         return event.key === 'Meta';
       default:
         return event.key === 'Control';
+    }
+  }
+
+  function parseHotkey(hotkeyString) {
+    if (!hotkeyString || typeof hotkeyString !== 'string') {
+      return null;
+    }
+
+    const parts = hotkeyString.toLowerCase().split('+').map(p => p.trim());
+    const modifiers = new Set();
+    let key = '';
+
+    for (const part of parts) {
+      if (part === 'ctrl' || part === 'control') {
+        modifiers.add('ctrl');
+      } else if (part === 'alt' || part === 'option') {
+        modifiers.add('alt');
+      } else if (part === 'shift') {
+        modifiers.add('shift');
+      } else if (part === 'meta' || part === 'cmd' || part === 'command' || part === '⌘') {
+        modifiers.add('meta');
+      } else if (part) {
+        key = part;
+      }
+    }
+
+    if (!key) {
+      return null;
+    }
+
+    return { modifiers, key };
+  }
+
+  function matchesHotkey(event, hotkey) {
+    if (!hotkey) {
+      return false;
+    }
+
+    const { modifiers, key } = hotkey;
+
+    if (event.ctrlKey && !modifiers.has('ctrl')) {
+      return false;
+    }
+    if (!event.ctrlKey && modifiers.has('ctrl')) {
+      return false;
+    }
+
+    if (event.altKey && !modifiers.has('alt')) {
+      return false;
+    }
+    if (!event.altKey && modifiers.has('alt')) {
+      return false;
+    }
+
+    if (event.shiftKey && !modifiers.has('shift')) {
+      return false;
+    }
+    if (!event.shiftKey && modifiers.has('shift')) {
+      return false;
+    }
+
+    if (event.metaKey && !modifiers.has('meta')) {
+      return false;
+    }
+    if (!event.metaKey && modifiers.has('meta')) {
+      return false;
+    }
+
+    const eventKey = event.key.toLowerCase();
+    if (eventKey !== key) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleGlobalHotkey(event) {
+    const hotkeyString = currentSettings?.hotkeyShowTranslations;
+    if (!hotkeyString) {
+      return;
+    }
+
+    const hotkey = parseHotkey(hotkeyString);
+    if (!hotkey) {
+      return;
+    }
+
+    if (matchesHotkey(event, hotkey)) {
+      event.preventDefault();
+
+      const newShowTranslations = !displayTranslations;
+      chrome.storage.sync.set({
+        [SETTINGS_KEY]: {
+          ...currentSettings,
+          showTranslations: newShowTranslations
+        }
+      });
     }
   }
 
@@ -1268,7 +1366,10 @@
   });
   document.addEventListener('mousedown', handleDocumentMouseDown, true);
   document.addEventListener('mousemove', handleTriggerMouseMove, true);
-  document.addEventListener('keydown', handleTriggerKeyDown, true);
+  document.addEventListener('keydown', (event) => {
+    handleTriggerKeyDown(event);
+    handleGlobalHotkey(event);
+  }, true);
   document.addEventListener('keyup', handleTriggerKeyUp, true);
   window.addEventListener('scroll', () => refreshFloatingPosition(), true);
   window.addEventListener('resize', () => refreshFloatingPosition());

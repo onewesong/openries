@@ -4,6 +4,7 @@ const displayToggle = document.getElementById('display-toggle');
 const termCountInput = document.getElementById('popup-term-count');
 const termDifficultySelect = document.getElementById('popup-term-difficulty');
 const triggerKeySelect = document.getElementById('popup-trigger-key');
+const hotkeyShowTranslationsInput = document.getElementById('hotkey-show-translations');
 const statusEl = document.getElementById('status');
 const openOptionsLink = document.getElementById('open-options');
 const modelMeta = document.getElementById('model-meta');
@@ -43,6 +44,7 @@ async function hydrate() {
       ? settings.termDifficulty
       : 'intermediate';
     triggerKeySelect.value = settings.triggerKey || 'ctrl';
+    hotkeyShowTranslationsInput.value = settings.hotkeyShowTranslations || '';
     modelMeta.textContent = settings.model ? `模型 ${settings.model}` : '';
     showStatus('设置已同步', 1200);
   } catch (error) {
@@ -91,6 +93,11 @@ termDifficultySelect.addEventListener('change', () => {
 triggerKeySelect.addEventListener('change', () => {
   const value = triggerKeySelect.value;
   persistSettings({ triggerKey: value }, '触发键已更新');
+});
+
+hotkeyShowTranslationsInput.addEventListener('change', () => {
+  const value = hotkeyShowTranslationsInput.value.trim();
+  persistSettings({ hotkeyShowTranslations: value }, '显示切换快捷键已保存');
 });
 
 openOptionsLink.addEventListener('click', (event) => {
