@@ -566,52 +566,68 @@
         border-radius: 10px;
         padding: 12px 14px;
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        overflow: hidden;
       }
       #ries-wordbook-popover .wb-en { font-weight: 700; font-size: 14px; color: #f8fafc; }
       #ries-wordbook-popover .wb-cn { margin-top: 4px; font-size: 13px; color: #cbd5f5; }
       #ries-wordbook-popover .wb-ctx { margin-top: 6px; font-size: 12px; color: #94a3b8; max-width: 320px; word-break: break-word; }
-      #ries-wordbook-popover .wb-actions { margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end; }
-      #ries-wordbook-popover .wb-btn { cursor: pointer; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; }
-      #ries-wordbook-popover .wb-btn.add { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-      #ries-wordbook-popover .wb-btn.add.bookmarked { background: linear-gradient(135deg, #10b981, #059669); }
-      #ries-wordbook-popover .wb-btn.close { background: #334155; color: #f8fafc; }
+      #ries-wordbook-popover .wb-icon-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #94a3b8;
+        font-size: 16px;
+        line-height: 1;
+      }
+      #ries-wordbook-popover .wb-icon-btn:hover {
+        background: rgba(148,163,184,0.12);
+        color: #e2e8f0;
+      }
+      #ries-wordbook-popover .wb-icon-btn.bookmarked {
+        color: #10b981;
+        background: rgba(16,185,129,0.15);
+        border-color: rgba(16,185,129,0.25);
+      }
     `;
     document.head.appendChild(style);
 
     const pop = document.createElement('div');
     pop.id = 'ries-wordbook-popover';
     pop.innerHTML = `
+      <button class="wb-icon-btn" id="ries-wb-pop-toggle" title="添加到生词本">🔖</button>
       <div class="wb-en">${escapeHtml(english)}</div>
       ${chinese ? `<div class="wb-cn">${escapeHtml(chinese)}</div>` : ''}
       ${context ? `<div class="wb-ctx">${escapeHtml(context)}</div>` : ''}
-      <div class="wb-actions">
-        <button class="wb-btn add" id="ries-wb-pop-add">+ 添加到生词本</button>
-        <button class="wb-btn close" id="ries-wb-pop-close">关闭</button>
-      </div>
     `;
     document.body.appendChild(pop);
 
     wordbookPopover = pop;
     wordbookPopoverTarget = targetEl;
 
-    const close = () => removeWordbookPopover();
-    pop.querySelector('#ries-wb-pop-close').addEventListener('click', close);
-
     // 初始化书签状态
-    const addBtn = pop.querySelector('#ries-wb-pop-add');
+    const toggleBtn = pop.querySelector('#ries-wb-pop-toggle');
     let isBookmarked = false;
     chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
       if (response?.ok) {
         const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
         if (exists) {
           isBookmarked = true;
-          addBtn.textContent = '− 移出生词本';
-          addBtn.classList.add('bookmarked');
+          toggleBtn.classList.add('bookmarked');
+          toggleBtn.title = '移出生词本';
         }
       }
     });
 
-    addBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', () => {
       if (isBookmarked) {
         chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
           if (response?.ok) {
@@ -620,8 +636,8 @@
               chrome.runtime.sendMessage({ type: 'RIES_REMOVE_FROM_WORDBOOK', id: exists.id }, (removeResponse) => {
                 if (removeResponse?.ok) {
                   isBookmarked = false;
-                  addBtn.textContent = '+ 添加到生词本';
-                  addBtn.classList.remove('bookmarked');
+                  toggleBtn.classList.remove('bookmarked');
+                  toggleBtn.title = '添加到生词本';
                   if (inlineSpan && inlineSpan.classList) {
                     inlineSpan.classList.remove('ries-bookmarked');
                   }
@@ -637,8 +653,8 @@
         }, (addResponse) => {
           if (addResponse?.ok) {
             isBookmarked = true;
-            addBtn.textContent = '− 移出生词本';
-            addBtn.classList.add('bookmarked');
+            toggleBtn.classList.add('bookmarked');
+            toggleBtn.title = '移出生词本';
             if (inlineSpan && inlineSpan.classList) {
               inlineSpan.classList.add('ries-bookmarked');
             }
