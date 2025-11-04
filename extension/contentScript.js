@@ -42,6 +42,8 @@
   let currentInline = null;
   let pendingTriggerEvent = null;
   let triggerHoverRAF = null;
+  let wordbookPopover = null;
+  let wordbookPopoverTarget = null;
 
   function ensureStyles() {
     if (document.getElementById('ries-translation-style')) {
@@ -519,9 +521,134 @@
       const context = inlineSpan ? getContextFromInline(inlineSpan) : '';
 
       if (english) {
-        showWordbookModal(english, chinese, context, inlineSpan || null);
+        showWordbookPopover(english, chinese, context, inlineSpan || null, target);
       }
     }
+  }
+
+  function removeWordbookPopover() {
+    if (wordbookPopover && wordbookPopover.isConnected) {
+      wordbookPopover.remove();
+    }
+    wordbookPopover = null;
+    wordbookPopoverTarget = null;
+    const style = document.getElementById('ries-wordbook-popover-style');
+    if (style) style.remove();
+  }
+
+  function positionWordbookPopover() {
+    if (!wordbookPopover || !wordbookPopoverTarget) return;
+    const rect = wordbookPopoverTarget.getBoundingClientRect();
+    const pop = wordbookPopover;
+    const margin = 6;
+    const maxWidth = Math.min(360, window.innerWidth - 20);
+    pop.style.maxWidth = `${maxWidth}px`;
+    const top = Math.max(8, rect.top + window.scrollY - pop.offsetHeight - margin);
+    let left = rect.left + window.scrollX + (rect.width / 2) - (pop.offsetWidth / 2);
+    left = Math.max(8, Math.min(left, window.scrollX + window.innerWidth - pop.offsetWidth - 8));
+    pop.style.top = `${top}px`;
+    pop.style.left = `${left}px`;
+  }
+
+  function showWordbookPopover(english, chinese, context, inlineSpan, targetEl) {
+    removeWordbookPopover();
+
+    const style = document.createElement('style');
+    style.id = 'ries-wordbook-popover-style';
+    style.textContent = `
+      #ries-wordbook-popover {
+        position: absolute;
+        z-index: 2147483647;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: 1px solid rgba(148,163,184,0.18);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      #ries-wordbook-popover .wb-en { font-weight: 700; font-size: 14px; color: #f8fafc; }
+      #ries-wordbook-popover .wb-cn { margin-top: 4px; font-size: 13px; color: #cbd5f5; }
+      #ries-wordbook-popover .wb-ctx { margin-top: 6px; font-size: 12px; color: #94a3b8; max-width: 320px; word-break: break-word; }
+      #ries-wordbook-popover .wb-actions { margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end; }
+      #ries-wordbook-popover .wb-btn { cursor: pointer; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; }
+      #ries-wordbook-popover .wb-btn.add { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+      #ries-wordbook-popover .wb-btn.add.bookmarked { background: linear-gradient(135deg, #10b981, #059669); }
+      #ries-wordbook-popover .wb-btn.close { background: #334155; color: #f8fafc; }
+    `;
+    document.head.appendChild(style);
+
+    const pop = document.createElement('div');
+    pop.id = 'ries-wordbook-popover';
+    pop.innerHTML = `
+      <div class="wb-en">${escapeHtml(english)}</div>
+      ${chinese ? `<div class="wb-cn">${escapeHtml(chinese)}</div>` : ''}
+      ${context ? `<div class="wb-ctx">${escapeHtml(context)}</div>` : ''}
+      <div class="wb-actions">
+        <button class="wb-btn add" id="ries-wb-pop-add">+ 添加到生词本</button>
+        <button class="wb-btn close" id="ries-wb-pop-close">关闭</button>
+      </div>
+    `;
+    document.body.appendChild(pop);
+
+    wordbookPopover = pop;
+    wordbookPopoverTarget = targetEl;
+
+    const close = () => removeWordbookPopover();
+    pop.querySelector('#ries-wb-pop-close').addEventListener('click', close);
+
+    // 初始化书签状态
+    const addBtn = pop.querySelector('#ries-wb-pop-add');
+    let isBookmarked = false;
+    chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
+      if (response?.ok) {
+        const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
+        if (exists) {
+          isBookmarked = true;
+          addBtn.textContent = '− 移出生词本';
+          addBtn.classList.add('bookmarked');
+        }
+      }
+    });
+
+    addBtn.addEventListener('click', () => {
+      if (isBookmarked) {
+        chrome.runtime.sendMessage({ type: 'RIES_GET_WORDBOOK' }, (response) => {
+          if (response?.ok) {
+            const exists = response.data.find(entry => entry.english === english && entry.chinese === chinese);
+            if (exists) {
+              chrome.runtime.sendMessage({ type: 'RIES_REMOVE_FROM_WORDBOOK', id: exists.id }, (removeResponse) => {
+                if (removeResponse?.ok) {
+                  isBookmarked = false;
+                  addBtn.textContent = '+ 添加到生词本';
+                  addBtn.classList.remove('bookmarked');
+                  if (inlineSpan && inlineSpan.classList) {
+                    inlineSpan.classList.remove('ries-bookmarked');
+                  }
+                }
+              });
+            }
+          }
+        });
+      } else {
+        chrome.runtime.sendMessage({
+          type: 'RIES_ADD_TO_WORDBOOK',
+          data: { english, chinese, context }
+        }, (addResponse) => {
+          if (addResponse?.ok) {
+            isBookmarked = true;
+            addBtn.textContent = '− 移出生词本';
+            addBtn.classList.add('bookmarked');
+            if (inlineSpan && inlineSpan.classList) {
+              inlineSpan.classList.add('ries-bookmarked');
+            }
+          }
+        });
+      }
+    });
+
+    // 放到文档后才能正确测量尺寸
+    requestAnimationFrame(() => positionWordbookPopover());
   }
 
   function showWordbookModal(english, chinese, context, inlineSpan) {
@@ -1696,6 +1823,27 @@
       setTriggerActive(false);
     }
   });
+
+  // 全局交互：关闭/重定位 popover
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (wordbookPopover && t instanceof Node) {
+      if (!wordbookPopover.contains(t) && !wordbookPopoverTarget?.contains(t)) {
+        removeWordbookPopover();
+      }
+    }
+  }, true);
+  window.addEventListener('scroll', () => {
+    if (wordbookPopover) positionWordbookPopover();
+  }, true);
+  window.addEventListener('resize', () => {
+    if (wordbookPopover) positionWordbookPopover();
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'Escape') {
+      removeWordbookPopover();
+    }
+  }, true);
 
   function removeOverlay() {
     const existing = document.getElementById(OVERLAY_ID);
