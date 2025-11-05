@@ -19,7 +19,8 @@
     apiPath: '/v1/chat/completions',
     temperature: 0.2,
     triggerKey: 'ctrl',
-    hotkeyShowTranslations: ''
+    hotkeyShowTranslations: '',
+    minInlineChars: 10
   };
 
   let floatingIcon = null;
@@ -268,7 +269,10 @@
     const temperature = Number.isFinite(Number(settings?.temperature)) ? Number(settings.temperature).toFixed(2) : '0.20';
     const baseUrl = settings?.apiBaseUrl || '';
     const apiPath = settings?.apiPath || '';
-    return `${count}|${difficulty}|${model}|${temperature}|${baseUrl}|${apiPath}`;
+    const minInlineChars = Number.isFinite(Number.parseInt(settings?.minInlineChars, 10))
+      ? Number.parseInt(settings.minInlineChars, 10)
+      : 10;
+    return `${count}|${difficulty}|${model}|${temperature}|${baseUrl}|${apiPath}|min:${minInlineChars}`;
   }
 
   function getNamespacedKey(key) {
@@ -1083,7 +1087,11 @@
 
     const normalized = normalizeText(trimmed);
 
-    if (!normalized || normalized.length > INLINE_MAX_LENGTH) {
+    const minInlineChars = Number.isFinite(Number.parseInt(currentSettings?.minInlineChars, 10))
+      ? Number.parseInt(currentSettings.minInlineChars, 10)
+      : 10;
+
+    if (!normalized || normalized.length > INLINE_MAX_LENGTH || normalized.length < minInlineChars) {
       return null;
     }
 
@@ -1352,7 +1360,10 @@
           return NodeFilter.FILTER_REJECT;
         }
         const normalized = normalizeText(trimmed);
-        if (!normalized || normalized.length === 0 || normalized.length > INLINE_MAX_LENGTH) {
+        const minInlineChars = Number.isFinite(Number.parseInt(currentSettings?.minInlineChars, 10))
+          ? Number.parseInt(currentSettings.minInlineChars, 10)
+          : 10;
+        if (!normalized || normalized.length === 0 || normalized.length > INLINE_MAX_LENGTH || normalized.length < minInlineChars) {
           return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;

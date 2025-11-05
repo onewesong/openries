@@ -8,6 +8,7 @@ const modelInput = document.getElementById('model');
 const temperatureInput = document.getElementById('temperature');
 const status = document.getElementById('status');
 const translateSelectionBtn = document.getElementById('translate-selection');
+const minInlineCharsInput = document.getElementById('min-inline-chars');
 
 let originalSettings = null;
 
@@ -53,6 +54,9 @@ async function hydrate() {
   apiKeyInput.value = settings.apiKey;
   modelInput.value = settings.model;
   temperatureInput.value = settings.temperature;
+  if (minInlineCharsInput) {
+    minInlineCharsInput.value = typeof settings.minInlineChars === 'number' ? settings.minInlineChars : 10;
+  }
 }
 
 form.addEventListener('submit', async (event) => {
@@ -71,7 +75,8 @@ form.addEventListener('submit', async (event) => {
       termDifficulty: latestSettings.termDifficulty,
       showTranslations: latestSettings.showTranslations,
       triggerKey: latestSettings.triggerKey,
-      hotkeyShowTranslations: latestSettings.hotkeyShowTranslations
+      hotkeyShowTranslations: latestSettings.hotkeyShowTranslations,
+      minInlineChars: Math.min(200, Math.max(1, Number.parseInt(minInlineCharsInput?.value || latestSettings.minInlineChars || 10, 10)))
     });
 
     // Saved message

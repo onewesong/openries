@@ -12,7 +12,8 @@ const DEFAULT_SETTINGS = {
   termDifficulty: 'intermediate',
   showTranslations: true,
   triggerKey: 'ctrl',
-  hotkeyShowTranslations: ''
+  hotkeyShowTranslations: '',
+  minInlineChars: 10
 };
 
 export async function getSettings() {
